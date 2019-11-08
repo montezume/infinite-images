@@ -1,5 +1,7 @@
 /* eslint-disable */
 const fetch = require("node-fetch");
+const cache = {};
+
 exports.handler = async function(event, context) {
   const headers = {
     Accept: "application/json",
@@ -8,6 +10,16 @@ exports.handler = async function(event, context) {
 
   try {
     const { page = 1 } = event.queryStringParameters;
+
+    if (cache[page]) {
+      return {
+        headers: {
+          "USED-CACHE": "true"
+        },
+        statusCode: 200,
+        body: cache[page]
+      };
+    }
 
     const response = await fetch(
       `https://api.unsplash.com/photos?page=${page}`,
@@ -21,7 +33,12 @@ exports.handler = async function(event, context) {
     }
     const data = await response.json();
 
+    cache[page] = JSON.stringify(data);
+
     return {
+      headers: {
+        "USED-CACHE": "false"
+      },
       statusCode: 200,
       body: JSON.stringify(data)
     };
